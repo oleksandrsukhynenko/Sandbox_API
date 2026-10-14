@@ -3,6 +3,7 @@ import { createUserCredentials, userData } from '../data/users.data';
 import { createUser, login, cleanupUser } from '../helpers/user.helper';
 import { userProfileSchema } from '../helpers/schemas';
 import { sendRawCredentials } from '../helpers/raw-http.helper';
+import { endpoints } from '../data/endpoints';
 
 test.describe('Account API encoding and content types', () => {
   test('preserves special characters in the username', async ({ request }) => {
@@ -14,7 +15,7 @@ test.describe('Account API encoding and content types', () => {
     try {
       expect(user.registration.username).toBe(credentials.userName);
       await login(request, user);
-      const response = await request.get(`/Account/v1/User/${user.userID}`, {
+      const response = await request.get(endpoints.account.userById(user.userID), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       expect(response.status()).toBe(userData.httpStatus.ok);

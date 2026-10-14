@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test';
 import { createUser, login, cleanupUser, type User } from '../helpers/user.helper';
 import { userData } from '../data/users.data';
 import { userProfileSchema } from '../helpers/schemas';
+import { endpoints } from '../data/endpoints';
 
-test.describe('GET /Account/v1/User/{UUID}', () => {
+test.describe(`GET ${endpoints.account.user}/{UUID}`, () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
@@ -19,7 +20,7 @@ test.describe('GET /Account/v1/User/{UUID}', () => {
   });
 
   test('returns 200 with the user profile for a valid token', async ({ request }) => {
-    const response = await request.get(`/Account/v1/User/${user.userID}`, {
+    const response = await request.get(endpoints.account.userById(user.userID), {
       headers: { Authorization: `Bearer ${user.token}` },
     });
     expect(response.status()).toBe(userData.httpStatus.ok);
@@ -33,19 +34,19 @@ test.describe('GET /Account/v1/User/{UUID}', () => {
   });
 
   test('returns 401 for a request without authorization', async ({ request }) => {
-    const response = await request.get(`/Account/v1/User/${user.userID}`);
+    const response = await request.get(endpoints.account.userById(user.userID));
     expect(response.status()).toBe(userData.httpStatus.unauthorized);
   });
 
   test('returns 401 for an invalid token', async ({ request }) => {
-    const response = await request.get(`/Account/v1/User/${user.userID}`, {
+    const response = await request.get(endpoints.account.userById(user.userID), {
       headers: { Authorization: `Bearer ${userData.invalidToken}` },
     });
     expect(response.status()).toBe(userData.httpStatus.unauthorized);
   });
 
   test('returns 401 for a nonexistent user with a valid token', async ({ request }) => {
-    const response = await request.get(`/Account/v1/User/${randomUUID()}`, {
+    const response = await request.get(endpoints.account.userById(randomUUID()), {
       headers: { Authorization: `Bearer ${user.token}` },
     });
     expect(response.status()).toBe(userData.httpStatus.unauthorized);

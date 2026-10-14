@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 import { createUser, login, cleanupUser, type User } from '../helpers/user.helper';
 import { verifyObjectCreated } from '../helpers/assertions';
 import { userData } from '../data/users.data';
+import { endpoints } from '../data/endpoints';
 
-test.describe('POST /Account/v1/User', () => {
+test.describe(`POST ${endpoints.account.user}`, () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
@@ -24,7 +25,7 @@ test.describe('POST /Account/v1/User', () => {
       books: userData.responses.emptyBooks,
     });
     await login(request, user);
-    await verifyObjectCreated(request, '/Account/v1/User', user.userID, {
+    await verifyObjectCreated(request, endpoints.account.user, user.userID, {
       userId: user.userID,
       username: user.credentials.userName,
       books: userData.responses.emptyBooks,
@@ -34,7 +35,7 @@ test.describe('POST /Account/v1/User', () => {
   });
 
   test('returns 406 for a duplicate username', async ({ request }) => {
-    const response = await request.post('/Account/v1/User', {
+    const response = await request.post(endpoints.account.user, {
       data: user.credentials,
     });
     expect(response.status()).toBe(userData.httpStatus.duplicateUser);
@@ -43,7 +44,7 @@ test.describe('POST /Account/v1/User', () => {
 
   for (const { name, credentials } of userData.missingCredentialsCases) {
     test(`returns 400 for ${name}`, async ({ request }) => {
-      const response = await request.post('/Account/v1/User', { data: credentials });
+      const response = await request.post(endpoints.account.user, { data: credentials });
       expect(response.status()).toBe(userData.httpStatus.badRequest);
       expect(await response.json()).toMatchObject(userData.responses.invalidCredentials);
     });
@@ -51,7 +52,7 @@ test.describe('POST /Account/v1/User', () => {
 
   for (const { name, password } of userData.weakPasswordCases) {
     test(`returns 400 for a password ${name}`, async ({ request }) => {
-      const response = await request.post('/Account/v1/User', {
+      const response = await request.post(endpoints.account.user, {
         data: { ...user.credentials, password },
       });
       expect(response.status()).toBe(userData.httpStatus.badRequest);

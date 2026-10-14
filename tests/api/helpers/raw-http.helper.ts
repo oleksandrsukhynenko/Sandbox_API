@@ -1,5 +1,6 @@
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { endpoints } from '../data/endpoints';
 
 /**
  * Sends an empty JSON object to POST /Account/v1/Authorized using Node HTTP(S).
@@ -12,7 +13,7 @@ import { request as httpsRequest } from 'node:https';
  * @throws Rejects on request or response errors, or after 15 seconds of socket inactivity.
  */
 export async function sendRawCredentials(baseURL: string, contentType?: string) {
-  const url = new URL('/Account/v1/Authorized', baseURL);
+  const url = new URL(endpoints.account.authorized, baseURL);
   const payload = JSON.stringify({});
   const sendRequest = url.protocol === 'https:' ? httpsRequest : httpRequest;
 

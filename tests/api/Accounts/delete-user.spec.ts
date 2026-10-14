@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test';
 import { createUser, login, deleteUser, cleanupUser, type User } from '../helpers/user.helper';
 import { verifyObjectDeleted } from '../helpers/assertions';
 import { userData } from '../data/users.data';
+import { endpoints } from '../data/endpoints';
 
-test.describe('DELETE /Account/v1/User/{UUID}', () => {
+test.describe(`DELETE ${endpoints.account.user}/{UUID}`, () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
@@ -22,13 +23,13 @@ test.describe('DELETE /Account/v1/User/{UUID}', () => {
     const response = await deleteUser(request, user);
     expect(await response.text()).toBe(userData.responses.emptyBody);
 
-    await verifyObjectDeleted(request, '/Account/v1/User', user.userID, {
+    await verifyObjectDeleted(request, endpoints.account.user, user.userID, {
       headers: { Authorization: `Bearer ${user.token}` },
       expectedStatus: userData.httpStatus.unauthorized,
       expectedBody: userData.responses.userNotFound,
     });
 
-    const loginAfterDeletion = await request.post('/Account/v1/GenerateToken', {
+    const loginAfterDeletion = await request.post(endpoints.account.generateToken, {
       data: user.credentials,
     });
     expect(loginAfterDeletion.status()).toBe(userData.httpStatus.ok);
@@ -36,10 +37,10 @@ test.describe('DELETE /Account/v1/User/{UUID}', () => {
   });
 
   test('returns 401 for deletion without authorization and keeps the user', async ({ request }) => {
-    const response = await request.delete(`/Account/v1/User/${user.userID}`);
+    const response = await request.delete(endpoints.account.userById(user.userID));
     expect(response.status()).toBe(userData.httpStatus.unauthorized);
 
-    const profile = await request.get(`/Account/v1/User/${user.userID}`, {
+    const profile = await request.get(endpoints.account.userById(user.userID), {
       headers: { Authorization: `Bearer ${user.token}` },
     });
     expect(profile.status()).toBe(userData.httpStatus.ok);
@@ -47,12 +48,12 @@ test.describe('DELETE /Account/v1/User/{UUID}', () => {
   });
 
   test('returns 401 for an invalid token and keeps the user', async ({ request }) => {
-    const response = await request.delete(`/Account/v1/User/${user.userID}`, {
+    const response = await request.delete(endpoints.account.userById(user.userID), {
       headers: { Authorization: `Bearer ${userData.invalidToken}` },
     });
     expect(response.status()).toBe(userData.httpStatus.unauthorized);
 
-    const profile = await request.get(`/Account/v1/User/${user.userID}`, {
+    const profile = await request.get(endpoints.account.userById(user.userID), {
       headers: { Authorization: `Bearer ${user.token}` },
     });
     expect(profile.status()).toBe(userData.httpStatus.ok);
@@ -60,7 +61,7 @@ test.describe('DELETE /Account/v1/User/{UUID}', () => {
   });
 
   test('returns 200 with an error for a nonexistent user with a valid token', async ({ request }) => {
-    const response = await request.delete(`/Account/v1/User/${randomUUID()}`, {
+    const response = await request.delete(endpoints.account.userById(randomUUID()), {
       headers: { Authorization: `Bearer ${user.token}` },
     });
     expect(response.status()).toBe(userData.httpStatus.ok);

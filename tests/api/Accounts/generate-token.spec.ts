@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 import { createUser, login, cleanupUser, type User } from '../helpers/user.helper';
 import { userData } from '../data/users.data';
 import { failedTokenSchema, tokenSchema } from '../helpers/schemas';
+import { endpoints } from '../data/endpoints';
 
-test.describe('POST /Account/v1/GenerateToken', () => {
+test.describe(`POST ${endpoints.account.generateToken}`, () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
@@ -22,7 +23,7 @@ test.describe('POST /Account/v1/GenerateToken', () => {
   });
 
   test('returns 200 without a token for an incorrect password', async ({ request }) => {
-    const response = await request.post('/Account/v1/GenerateToken', {
+    const response = await request.post(endpoints.account.generateToken, {
       data: { ...user.credentials, password: userData.invalidPassword },
     });
     expect(response.status()).toBe(userData.httpStatus.ok);
@@ -35,7 +36,7 @@ test.describe('POST /Account/v1/GenerateToken', () => {
 
   for (const { name, credentials } of userData.missingCredentialsCases) {
     test(`returns 400 for ${name}`, async ({ request }) => {
-      const response = await request.post('/Account/v1/GenerateToken', { data: credentials });
+      const response = await request.post(endpoints.account.generateToken, { data: credentials });
       expect(response.status()).toBe(userData.httpStatus.badRequest);
       expect(await response.json()).toMatchObject(userData.responses.invalidCredentials);
     });

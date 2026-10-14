@@ -1,5 +1,6 @@
 import { expect, type APIRequestContext } from '@playwright/test';
 import { createUserCredentials, userData, type UserCredentials } from '../data/users.data';
+import { endpoints } from '../data/endpoints';
 
 export type User = {
   credentials: UserCredentials;
@@ -19,7 +20,7 @@ export async function createUser(
   request: APIRequestContext,
   credentials: UserCredentials = createUserCredentials(),
 ): Promise<User> {
-  const response = await request.post('/Account/v1/User', { data: credentials });
+  const response = await request.post(endpoints.account.user, { data: credentials });
   expect(response.status()).toBe(userData.httpStatus.created);
   const registration = await response.json();
   return {
@@ -37,7 +38,7 @@ export async function createUser(
  * @returns Parsed token response, including token, expires, status and result.
  */
 export async function login(request: APIRequestContext, user: User) {
-  const response = await request.post('/Account/v1/GenerateToken', {
+  const response = await request.post(endpoints.account.generateToken, {
     data: user.credentials,
   });
   expect(response.status()).toBe(userData.httpStatus.ok);
@@ -62,7 +63,7 @@ export async function deleteUser(request: APIRequestContext, user: User) {
   if (!user.token) {
     await login(request, user);
   }
-  const response = await request.delete(`/Account/v1/User/${user.userID}`, {
+  const response = await request.delete(endpoints.account.userById(user.userID), {
     headers: { Authorization: `Bearer ${user.token}` },
   });
   if (response.status() === userData.httpStatus.noContent) {

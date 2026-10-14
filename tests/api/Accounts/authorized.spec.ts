@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { createUser, login, cleanupUser, type User } from '../helpers/user.helper';
 import { userData } from '../data/users.data';
+import { endpoints } from '../data/endpoints';
 
-test.describe('POST /Account/v1/Authorized', () => {
+test.describe(`POST ${endpoints.account.authorized}`, () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
@@ -18,7 +19,7 @@ test.describe('POST /Account/v1/Authorized', () => {
   test('returns 200 with true after a token has been generated', async ({ request }) => {
     await login(request, user);
 
-    const response = await request.post('/Account/v1/Authorized', {
+    const response = await request.post(endpoints.account.authorized, {
       data: user.credentials,
     });
     expect(response.status()).toBe(userData.httpStatus.ok);
@@ -29,7 +30,7 @@ test.describe('POST /Account/v1/Authorized', () => {
   });
 
   test('returns 200 with false before a token has been generated', async ({ request }) => {
-    const response = await request.post('/Account/v1/Authorized', {
+    const response = await request.post(endpoints.account.authorized, {
       data: user.credentials,
     });
     expect(response.status()).toBe(userData.httpStatus.ok);
@@ -38,14 +39,14 @@ test.describe('POST /Account/v1/Authorized', () => {
 
   for (const { name, credentials } of userData.missingCredentialsCases) {
     test(`returns 400 for ${name}`, async ({ request }) => {
-      const response = await request.post('/Account/v1/Authorized', { data: credentials });
+      const response = await request.post(endpoints.account.authorized, { data: credentials });
       expect(response.status()).toBe(userData.httpStatus.badRequest);
       expect(await response.json()).toMatchObject(userData.responses.invalidCredentials);
     });
   }
 
   test('returns 404 for an incorrect password', async ({ request }) => {
-    const response = await request.post('/Account/v1/Authorized', {
+    const response = await request.post(endpoints.account.authorized, {
       data: { ...user.credentials, password: userData.invalidPassword },
     });
     expect(response.status()).toBe(userData.httpStatus.notFound);
