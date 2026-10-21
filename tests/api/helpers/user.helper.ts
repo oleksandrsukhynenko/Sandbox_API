@@ -10,6 +10,7 @@ export type User = {
   deleted: boolean;
 };
 
+//is it possible to make it simpler? method as a parameter has method with additional parameters
 /**
  * Creates a user through POST /Account/v1/User and verifies HTTP 201.
  * @param request - Playwright API context configured with the API base URL.

@@ -1,7 +1,9 @@
 import { performance } from 'node:perf_hooks';
 import { test, expect } from '@playwright/test';
+//explain
 import { z } from 'zod';
 import { bookSchema, userProfileSchema } from '../helpers/schemas';
+//explain User
 import { createUser, login, cleanupUser, type User } from '../helpers/user.helper';
 import { userData } from '../data/users.data';
 import { endpoints } from '../data/endpoints';
@@ -12,6 +14,7 @@ test.describe('BookStore API', () => {
   let user: User;
 
   test.beforeEach(async ({ request }) => {
+    //show request endpoint
     user = await createUser(request);
     await login(request, user);
   });
@@ -21,7 +24,7 @@ test.describe('BookStore API', () => {
       await cleanupUser(request, user);
     }
   });
-
+//add test steps for more clearly understand what is happening in the test
   test('returns a nonempty valid catalog within the response time budget', async ({ request }) => {
     const maxResponseTime = Number(process.env.API_MAX_RESPONSE_TIME_MS ?? 10000);
     expect(Number.isFinite(maxResponseTime) && maxResponseTime > 0).toBe(true);
@@ -52,7 +55,7 @@ test.describe('BookStore API', () => {
     const [originalIsbn, replacementIsbn] = isbns;
     const headers = { Authorization: `Bearer ${user.token}` };
     const profilePath = endpoints.account.userById(user.userID);
-
+//how we get userID
     await test.step('Create a book in the user collection', async () => {
       const response = await request.post(endpoints.bookStore.books, {
         headers,

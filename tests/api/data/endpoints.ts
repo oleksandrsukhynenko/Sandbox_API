@@ -11,6 +11,7 @@ export const endpoints = {
   bookStore: {
     books: `${bookStoreBase}/Books`,
     book: `${bookStoreBase}/Book`,
+    //booksByIsbn: (isbn: string) => `${bookStoreBase}/${books}/${encodeURIComponent(isbn)}`,
     booksByIsbn: (isbn: string) => `${bookStoreBase}/Books/${encodeURIComponent(isbn)}`,
   },
 } as const;
