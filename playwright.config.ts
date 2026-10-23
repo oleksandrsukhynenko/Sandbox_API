@@ -11,7 +11,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: process.env.BASE_URL ?? 'https://jsonplaceholder.typicode.com',
+    baseURL: process.env.BASE_URL ?? 'https://demoqa.com',
     extraHTTPHeaders: {
       Accept: 'application/json',
     },
