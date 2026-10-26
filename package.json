@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "playwright test",
+    "test": "playwright test --project=api",
+    "test:smoke": "playwright test --project=api --grep @smoke",
+    "test:regression": "playwright test --project=api --grep @regression",
+    "test:known-issues": "playwright test --project=known-issues",
     "test:report": "playwright show-report",
     "typecheck": "tsc --noEmit"
   },

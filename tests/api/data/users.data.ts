@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import type { Book, UserCredentials } from '../models/api.models';
 
-export type UserCredentials = { userName: string; password: string };
+export type { UserCredentials } from '../models/api.models';
 
-export function createUserCredentials(): UserCredentials {
+/** Builds unique valid credentials, allowing individual fields to be overridden. */
+export function createUserCredentials(overrides: Partial<UserCredentials> = {}): UserCredentials {
   return {
     userName: `api_${randomUUID()}`,
     password: `Api!9aA${randomUUID()}`,
+    ...overrides,
   };
 }
 
@@ -41,7 +44,7 @@ export const userData = {
     weakPassword: { code: '1300' },
     duplicateUser: { code: '1204' },
     userNotFound: { code: '1207' },
-    emptyBooks: [] as unknown[],
+    emptyBooks: [] as Book[],
     emptyBody: '',
     authorized: true,
     notAuthorized: false,
