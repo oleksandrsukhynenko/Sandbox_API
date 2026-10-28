@@ -8,8 +8,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { open: 'never' }], ['list']],
+  workers: process.env.CI ? 1 : 2,
+  reporter: [['html', { open: 'never' }], ['list'], ['./tests/reporters/outcome.reporter.ts']],
   use: {
     baseURL: process.env.BASE_URL ?? 'https://demoqa.com',
     extraHTTPHeaders: {
@@ -21,6 +21,12 @@ export default defineConfig({
     {
       name: 'api',
       testMatch: /.*\.spec\.ts/,
+      grepInvert: /@known-issue/,
+    },
+    {
+      name: 'known-issues',
+      testMatch: /.*\.spec\.ts/,
+      grep: /@known-issue/,
     },
   ],
 });

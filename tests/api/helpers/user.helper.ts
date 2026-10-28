@@ -1,28 +1,30 @@
-import { expect, type APIRequestContext } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { createUserCredentials, userData, type UserCredentials } from '../data/users.data';
-import { endpoints } from '../data/endpoints';
+import type { AccountService } from '../services/account.service';
+import type { RegisteredUser } from '../models/api.models';
+import { registrationSchema, tokenSchema } from './schemas';
 
 export type User = {
   credentials: UserCredentials;
   userID: string;
-  registration: { userID: string; username: string; books: unknown[] };
+  registration: RegisteredUser;
   token?: string;
   deleted: boolean;
 };
 
 /**
  * Creates a user through POST /Account/v1/User and verifies HTTP 201.
- * @param request - Playwright API context configured with the API base URL.
+ * @param accounts - Account service configured through the shared API fixture.
  * @param credentials - Login details; unique credentials are generated when omitted.
  * @returns User credentials, ID and registration response, with deleted set to false.
  */
 export async function createUser(
-  request: APIRequestContext,
+  accounts: AccountService,
   credentials: UserCredentials = createUserCredentials(),
 ): Promise<User> {
-  const response = await request.post(endpoints.account.user, { data: credentials });
+  const response = await accounts.create(credentials);
   expect(response.status()).toBe(userData.httpStatus.created);
-  const registration = await response.json();
+  const registration = registrationSchema.parse(await response.json());
   return {
     credentials,
     userID: registration.userID,
@@ -33,16 +35,14 @@ export async function createUser(
 
 /**
  * Generates a token and verifies a successful response with a future expiration.
- * @param request - Playwright API context configured with the API base URL.
+ * @param accounts - Account service configured through the shared API fixture.
  * @param user - Registered user; the returned nonempty token is stored in user.token.
  * @returns Parsed token response, including token, expires, status and result.
  */
-export async function login(request: APIRequestContext, user: User) {
-  const response = await request.post(endpoints.account.generateToken, {
-    data: user.credentials,
-  });
+export async function login(accounts: AccountService, user: User) {
+  const response = await accounts.generateToken(user.credentials);
   expect(response.status()).toBe(userData.httpStatus.ok);
-  const body = await response.json();
+  const body = tokenSchema.parse(await response.json());
   if (typeof body.token === 'string' && body.token.length > 0) {
     user.token = body.token;
   }
@@ -55,17 +55,15 @@ export async function login(request: APIRequestContext, user: User) {
 /**
  * Deletes a user with bearer authorization and verifies HTTP 204.
  * Generates a token if user.token is missing; marks user.deleted on HTTP 204.
- * @param request - Playwright API context configured with the API base URL.
+ * @param accounts - Account service configured through the shared API fixture.
  * @param user - User to delete; its token and deleted flag may be updated.
  * @returns The deletion API response.
  */
-export async function deleteUser(request: APIRequestContext, user: User) {
+export async function deleteUser(accounts: AccountService, user: User) {
   if (!user.token) {
-    await login(request, user);
+    await login(accounts, user);
   }
-  const response = await request.delete(endpoints.account.userById(user.userID), {
-    headers: { Authorization: `Bearer ${user.token}` },
-  });
+  const response = await accounts.delete(user.userID, user.token);
   if (response.status() === userData.httpStatus.noContent) {
     user.deleted = true;
   }
@@ -75,13 +73,23 @@ export async function deleteUser(request: APIRequestContext, user: User) {
 
 /**
  * Deletes a test user unless user.deleted already indicates successful deletion.
+ * Uses Basic auth when no token exists so cleanup does not depend on token generation.
  * Authentication and deletion errors propagate rather than being silently ignored.
- * @param request - Playwright API context configured with the API base URL.
+ * @param accounts - Account service configured through the shared API fixture.
  * @param user - User to clean up through deleteUser.
  * @returns Resolves without a value after cleanup or when deletion is already recorded.
  */
-export async function cleanupUser(request: APIRequestContext, user: User) {
-  if (!user.deleted) {
-    await deleteUser(request, user);
+export async function cleanupUser(accounts: AccountService, user: User) {
+  if (user.deleted) {
+    return;
+  }
+  if (user.token) {
+    await deleteUser(accounts, user);
+  } else {
+    const response = await accounts.deleteWithCredentials(user.userID, user.credentials);
+    if (response.status() === userData.httpStatus.noContent) {
+      user.deleted = true;
+    }
+    expect(response.status(), 'Credential-based user cleanup must succeed').toBe(userData.httpStatus.noContent);
   }
 }

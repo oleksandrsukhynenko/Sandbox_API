@@ -4,6 +4,15 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite
+        type: choice
+        default: regression
+        options:
+          - smoke
+          - regression
 jobs:
   test:
     timeout-minutes: 60
@@ -15,8 +24,12 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
-    - name: Run Playwright tests
-      run: npx playwright test
+    - name: Run smoke tests
+      if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.suite == 'smoke')
+      run: npm run test:smoke
+    - name: Run regression tests
+      if: github.event_name != 'pull_request' && !(github.event_name == 'workflow_dispatch' && inputs.suite == 'smoke')
+      run: npm run test:regression
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

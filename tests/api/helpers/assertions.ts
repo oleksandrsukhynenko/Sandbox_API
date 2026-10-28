@@ -1,23 +1,21 @@
-import { expect, type APIRequestContext } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { AccountService } from '../services/account.service';
 
 /**
- * Reads a resource by URL-encoded ID and verifies a 2xx response and partial JSON match.
- * @param request - Playwright API context configured with the API base URL.
- * @param endpoint - Collection path without the resource ID.
- * @param id - Resource identifier appended to the endpoint.
+ * Reads a user profile and verifies a 2xx response and partial JSON match.
+ * @param accounts - Account service used to read the profile.
+ * @param id - User identifier.
  * @param expectedBody - Fields that must match the returned JSON object.
- * @param options - Optional request headers, such as bearer authorization.
+ * @param token - Optional bearer token.
  * @returns The parsed JSON response body.
  */
 export async function verifyObjectCreated(
-  request: APIRequestContext,
-  endpoint: string,
-  id: string | number,
+  accounts: AccountService,
+  id: string,
   expectedBody: Record<string, unknown>,
-  options: { headers?: Record<string, string> } = {},
+  token?: string,
 ) {
-  const path = `${endpoint.replace(/\/$/, '')}/${encodeURIComponent(String(id))}`;
-  const response = await request.get(path, options);
+  const response = await accounts.getById(id, token);
   await expect(response, 'Created object must be accessible by ID').toBeOK();
   const body = await response.json();
   expect(body).toMatchObject(expectedBody);
@@ -25,25 +23,22 @@ export async function verifyObjectCreated(
 }
 
 /**
- * Reads a resource by URL-encoded ID and verifies the expected absence response.
- * @param request - Playwright API context configured with the API base URL.
- * @param endpoint - Collection path without the resource ID.
+ * Reads a user profile and verifies the expected absence response.
+ * @param accounts - Account service used to read the profile.
  * @param id - Identifier of the deleted resource.
- * @param options - Request headers, expected status (default 404) and optional JSON fields to match.
+ * @param options - Bearer token, expected status (default 404) and optional JSON fields to match.
  * @returns The API response; JSON is parsed only when expectedBody is supplied.
  */
 export async function verifyObjectDeleted(
-  request: APIRequestContext,
-  endpoint: string,
-  id: string | number,
+  accounts: AccountService,
+  id: string,
   options: {
-    headers?: Record<string, string>;
+    token?: string;
     expectedStatus?: number;
     expectedBody?: Record<string, unknown>;
   } = {},
 ) {
-  const path = `${endpoint.replace(/\/$/, '')}/${encodeURIComponent(String(id))}`;
-  const response = await request.get(path, { headers: options.headers });
+  const response = await accounts.getById(id, options.token);
   expect(response.status(), 'Deleted object must not be accessible by ID').toBe(
     options.expectedStatus ?? 404,
   );
