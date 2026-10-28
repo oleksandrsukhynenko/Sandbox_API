@@ -1,19 +1,22 @@
+import type { APIResponse } from '@playwright/test';
 import { performance } from 'node:perf_hooks';
 import { test, expect } from '../fixtures/api.fixture';
 import { catalogSchema, collectionSchema, userProfileSchema } from '../helpers/schemas';
 import { userData } from '../data/users.data';
 
 test.describe('BookStore API', { tag: '@regression' }, () => {
+  let response: APIResponse;
+
   test('returns a nonempty valid catalog within the response time budget', { tag: '@smoke' }, async ({ catalog: catalogService, authenticatedUser: _user }) => {
     const maxResponseTime = Number(process.env.API_MAX_RESPONSE_TIME_MS ?? 10000);
     await test.step('Validate the response time budget', async () => {
       expect(Number.isFinite(maxResponseTime) && maxResponseTime > 0).toBe(true);
     });
-    const { response, elapsed } = await test.step('Request the book catalog and measure response time', async () => {
+    let elapsed: number;
+    await test.step('Request the book catalog and measure response time', async () => {
       const startedAt = performance.now();
-      const response = await catalogService.getAll();
-      const elapsed = performance.now() - startedAt;
-      return { response, elapsed };
+      response = await catalogService.getAll();
+      elapsed = performance.now() - startedAt;
     });
 
     await test.step('Verify response status, content type and response time', async () => {
@@ -40,45 +43,45 @@ test.describe('BookStore API', { tag: '@regression' }, () => {
     let replacementIsbn: string;
 
     await test.step('Select two different books from the catalog', async () => {
-      const catalogResponse = await catalogService.getAll();
-      expect(catalogResponse.status()).toBe(userData.httpStatus.ok);
-      const catalog = catalogSchema.parse(await catalogResponse.json());
+      response = await catalogService.getAll();
+      expect(response.status()).toBe(userData.httpStatus.ok);
+      const catalog = catalogSchema.parse(await response.json());
       const isbns = [...new Set(catalog.books.map(book => book.isbn))];
       expect(isbns.length, 'Replacement requires two different catalog books').toBeGreaterThanOrEqual(2);
       [originalIsbn, replacementIsbn] = isbns;
     });
     await test.step('Create a book in the user collection', async () => {
-      const response = await collection.add({ userId: user.userID, collectionOfIsbns: [{ isbn: originalIsbn }] }, user.token);
+      response = await collection.add({ userId: user.userID, collectionOfIsbns: [{ isbn: originalIsbn }] }, user.token);
       expect(response.status()).toBe(userData.httpStatus.created);
       expect(collectionSchema.parse(await response.json()).books).toEqual([{ isbn: originalIsbn }]);
     });
 
     await test.step('Read the persisted collection', async () => {
-      const response = await accounts.getById(user.userID, user.token);
+      response = await accounts.getById(user.userID, user.token);
       expect(response.status()).toBe(userData.httpStatus.ok);
       const profile = userProfileSchema.parse(await response.json());
       expect(profile.books.map(book => book.isbn)).toEqual([originalIsbn]);
     });
 
     await test.step('Update with PUT and verify persistence', async () => {
-      const response = await collection.replace(originalIsbn, { userId: user.userID, isbn: replacementIsbn }, user.token);
+      response = await collection.replace(originalIsbn, { userId: user.userID, isbn: replacementIsbn }, user.token);
       expect(response.status()).toBe(userData.httpStatus.ok);
       expect(userProfileSchema.parse(await response.json()).books.map(book => book.isbn)).toEqual([replacementIsbn]);
-      const readResponse = await accounts.getById(user.userID, user.token);
-      expect(readResponse.status()).toBe(userData.httpStatus.ok);
-      const profile = userProfileSchema.parse(await readResponse.json());
+      response = await accounts.getById(user.userID, user.token);
+      expect(response.status()).toBe(userData.httpStatus.ok);
+      const profile = userProfileSchema.parse(await response.json());
       expect(profile.books.map(book => book.isbn)).toEqual([replacementIsbn]);
       expect(profile.books.some(book => book.isbn === originalIsbn)).toBe(false);
     });
 
     await test.step('Delete the replacement book', async () => {
-      const response = await collection.delete({ userId: user.userID, isbn: replacementIsbn }, user.token);
+      response = await collection.delete({ userId: user.userID, isbn: replacementIsbn }, user.token);
       expect(response.status()).toBe(userData.httpStatus.noContent);
       expect(await response.text()).toBe(userData.responses.emptyBody);
     });
 
     await test.step('Verify absence while the user still exists', async () => {
-      const response = await accounts.getById(user.userID, user.token);
+      response = await accounts.getById(user.userID, user.token);
       expect(response.status()).toBe(userData.httpStatus.ok);
       const profile = userProfileSchema.parse(await response.json());
       expect(profile.userId).toBe(user.userID);

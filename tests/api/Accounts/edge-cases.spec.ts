@@ -1,9 +1,16 @@
+import type { APIResponse } from '@playwright/test';
 import { test as apiTest, expect } from '../fixtures/api.fixture';
 import { createUserCredentials, userData } from '../data/users.data';
-import { tokenSchema, userProfileSchema } from '../helpers/schemas';
+import { errorSchema, tokenSchema, userProfileSchema } from '../helpers/schemas';
 import { sendRawCredentials } from '../helpers/raw-http.helper';
-//describe how it works, what is the purpose of this test, what is the expected outcome
-//maybe use before
+
+/**
+ * Overrides the default unique credentials with a username containing +&?%#.
+ * The existing user fixture still registers and cleans up the account using these credentials.
+ * Default credentials do not exercise special-character handling; this override supplies them
+ * before registration, unlike changing the username in a beforeEach hook after user setup.
+ * The test expects registration, token generation and profile lookup to preserve the username.
+ */
 const test = apiTest.extend({
   userCredentials: async ({}, use) => {
     const credentials = createUserCredentials();
@@ -13,24 +20,29 @@ const test = apiTest.extend({
 });
 
 test.describe('Account API encoding and content types', { tag: '@regression' }, () => {
-  test('preserves special characters in the username', {
-    //descfribe this type of tad and annotation
-    tag: '@known-issue',
-    annotation: { type: 'issue', description: 'KNOWN-003: GenerateToken returns 500 for a registered username containing +&?%#.' },
-  }, async ({ accounts, user }) => {
+  let response: APIResponse;
+  let rawResponse: Awaited<ReturnType<typeof sendRawCredentials>>;
+
+  test('preserves special characters in the username @known-issue', async ({ accounts, user }) => {
+    // KNOWN-003: GenerateToken returns 500 for a registered username containing +&?%#.
+
     await test.step('Verify registration preserves the original username', async () => {
       expect(user.registration.username).toBe(user.credentials.userName);
     });
-    const tokenResponse = await test.step('Generate a token for the special-character user', () => accounts.generateToken(user.credentials));
+    await test.step('Generate a token for the special-character user', async () => {
+      response = await accounts.generateToken(user.credentials);
+    });
     await test.step('Verify token generation succeeds rather than reproducing KNOWN-003', async () => {
-      test.fail(tokenResponse.status() === 500,
+      test.fail(response.status() === 500,
         'KNOWN-003: registered special-character usernames cause GenerateToken to return 500.');
-      expect(tokenResponse.status()).toBe(userData.httpStatus.ok);
-      const body = tokenSchema.parse(await tokenResponse.json());
+      expect(response.status()).toBe(userData.httpStatus.ok);
+      const body = tokenSchema.parse(await response.json());
       user.token = body.token;
       expect(Date.parse(body.expires)).toBeGreaterThan(Date.now());
     });
-    const response = await test.step('Read the persisted profile with a valid token', () => accounts.getById(user.userID, user.token));
+    await test.step('Read the persisted profile with a valid token', async () => {
+      response = await accounts.getById(user.userID, user.token);
+    });
     await test.step('Verify the profile schema and exact username round trip', async () => {
       expect(response.status()).toBe(userData.httpStatus.ok);
       const profile = userProfileSchema.parse(await response.json());
@@ -42,19 +54,25 @@ test.describe('Account API encoding and content types', { tag: '@regression' }, 
     { name: 'missing Content-Type', contentType: undefined },
     { name: 'incorrect text/plain Content-Type', contentType: 'text/plain' },
   ]) {
-    test(`documents current 500 HTML error for ${name}`, {
+    test(`rejects ${name} with a JSON client error`, {
       tag: '@known-issue',
       annotation: { type: 'issue', description: 'KNOWN-004: missing or incorrect Content-Type produces a 500 HTML error.' },
     }, async ({ baseURL }) => {
       await test.step('Verify the API base URL is configured', async () => {
         expect(baseURL, 'BASE_URL must be configured').toBeTruthy();
       });
-      const response = await test.step(`Send a raw request with ${name}`, () => sendRawCredentials(baseURL!, contentType));
-      await test.step('Verify the outgoing Content-Type and characterize the current 500 HTML error', async () => {
-        expect(response.sentContentType).toBe(contentType);
-        expect(response.status).toBe(500);
-        expect(response.contentType).toMatch(/^text\/html(?:\s*;|$)/i);
-        expect(response.body).toContain('TypeError');
+      await test.step(`Send a raw request with ${name}`, async () => {
+        rawResponse = await sendRawCredentials(baseURL!, contentType);
+      });
+      await test.step('Verify the outgoing Content-Type and a controlled JSON client error', async () => {
+        expect(rawResponse.sentContentType).toBe(contentType);
+        test.fail(rawResponse.status === 500
+          && /^text\/html(?:\s*;|$)/i.test(rawResponse.contentType ?? '')
+          && rawResponse.body.includes('TypeError'),
+        'KNOWN-004: missing or incorrect Content-Type produces a 500 HTML TypeError.');
+        expect([400, 415]).toContain(rawResponse.status);
+        expect(rawResponse.contentType).toMatch(/^application\/json(?:\s*;|$)/i);
+        errorSchema.parse(JSON.parse(rawResponse.body));
       });
     });
   }

@@ -1,3 +1,4 @@
+import type { APIResponse } from '@playwright/test';
 import { test, expect } from '../fixtures/api.fixture';
 import { login } from '../helpers/user.helper';
 import { userData } from '../data/users.data';
@@ -5,6 +6,8 @@ import { failedTokenSchema, tokenSchema } from '../helpers/schemas';
 import { endpoints } from '../data/endpoints';
 
 test.describe(`POST ${endpoints.account.generateToken}`, { tag: '@regression' }, () => {
+  let response: APIResponse;
+
   test('returns 200 with a token and a future expiration for valid credentials', { tag: '@smoke' }, async ({ accounts, user }) => {
     const body = await test.step('Generate a token and validate its response schema', async () =>
       tokenSchema.parse(await login(accounts, user)));
@@ -14,8 +17,9 @@ test.describe(`POST ${endpoints.account.generateToken}`, { tag: '@regression' },
   });
 
   test('returns 200 without a token for an incorrect password', async ({ accounts, user }) => {
-    const response = await test.step('Attempt token generation with an incorrect password', () =>
-      accounts.generateToken({ ...user.credentials, password: userData.invalidPassword }));
+    await test.step('Attempt token generation with an incorrect password', async () => {
+      response = await accounts.generateToken({ ...user.credentials, password: userData.invalidPassword });
+    });
     await test.step('Verify the failed-token contract and absence of a usable token', async () => {
       expect(response.status()).toBe(userData.httpStatus.ok);
       const body = failedTokenSchema.parse(await response.json());
@@ -28,7 +32,9 @@ test.describe(`POST ${endpoints.account.generateToken}`, { tag: '@regression' },
 
   for (const { name, credentials } of userData.missingCredentialsCases) {
     test(`returns 400 for ${name}`, async ({ accounts, user: _user }) => {
-      const response = await test.step(`Attempt token generation with ${name}`, () => accounts.generateToken(credentials));
+      await test.step(`Attempt token generation with ${name}`, async () => {
+        response = await accounts.generateToken(credentials);
+      });
       await test.step('Verify invalid credentials are rejected with 400', async () => {
         expect(response.status()).toBe(userData.httpStatus.badRequest);
         expect(await response.json()).toMatchObject(userData.responses.invalidCredentials);

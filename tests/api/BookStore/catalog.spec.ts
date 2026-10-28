@@ -1,23 +1,18 @@
+import type { APIResponse } from '@playwright/test';
 import { test, expect } from '../fixtures/api.fixture';
 import { buildCatalogLookupCases, catalogLookupCaseNames } from '../data/books.data';
 import { bookSchema, catalogSchema, errorSchema } from '../helpers/schemas';
-//remove comment
-/** Checks ISBN lookup boundaries, encoding and whitespace behavior using a real catalog book. */
+
 test.describe('Catalog ISBN lookup', { tag: '@regression' }, () => {
+  let response: APIResponse;
+
   for (const name of catalogLookupCaseNames) {
-    test(`lookup: ${name}`, {
-      //different annotations if the tests
-      annotation: {
-        type: 'description',
-        description: `Checks "${name}" against a real catalog ISBN, verifying the HTTP status and the book or error response contract.`,
-      },
-    }, async ({ catalog }) => {
-      const catalogResponse = await test.step('Request the public book catalog', async () => {
-        return catalog.getAll();
+    test(`lookup: ${name} - verifies status and response body using a real catalog ISBN`, async ({ catalog }) => {
+      await test.step('Request the public book catalog', async () => {
+        response = await catalog.getAll();
       });
 
       const isbn = await test.step('Validate the catalog and select a real 13-digit ISBN', async () => {
-        const response = catalogResponse;
         expect(response.status()).toBe(200);
         const body = catalogSchema.parse(await response.json());
         const book = body.books.find(book => /^\d{13}$/.test(book.isbn));
@@ -31,8 +26,8 @@ test.describe('Catalog ISBN lookup', { tag: '@regression' }, () => {
         return selectedCase!;
       });
 
-      const response = await test.step(`Request a book for "${name}"`, async () => {
-        return catalog.getByIsbn(data.isbn);
+      await test.step(`Request a book for "${name}"`, async () => {
+        response = await catalog.getByIsbn(data.isbn);
       });
 
       await test.step(`Verify HTTP status ${data.expectedStatus}`, async () => {

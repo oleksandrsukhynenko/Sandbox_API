@@ -107,17 +107,17 @@ CI typecheck, extra diagnostic artifacts, explicit CI secret/config wiring, a se
 
 `npm test`, `test:smoke` and `test:regression` select the `api` project, which excludes `@known-issue`. `npm run test:known-issues` selects the separate `known-issues` project. Running `npx playwright test` without a project runs both, grouped by project in the HTML report. The same test is never selected by both projects.
 
-The custom outcome summary reports passed checks, expected failures, skipped, flaky and unexpected failures separately for each project. Playwright's built-in headline includes expected failures in its "passed" count; use the explicit outcome summary when quoting results. Passing a known-issue characterization means the observed defect was reproduced, not that the API is correct.
+The custom outcome summary reports passed checks, expected failures, skipped, flaky and unexpected failures separately for each project. Playwright's built-in headline includes expected failures in its "passed" count; use the explicit outcome summary when quoting results. All known-issue tests assert correct behavior and mark the recognized defect as an expected failure rather than passing checks that reproduce bugs.
 
 - KNOWN-001: missing collectionOfIsbns produces 500 instead of a validation response; tracked as an expected failure only when the 500 occurs.
-- KNOWN-002: mixed ISBN batches echo invalid items but only valid books appear in the profile; two characterization cases cover both orders.
+- KNOWN-002: mixed ISBN batches echo invalid items but only valid books appear in the profile; both input orders require the success response to match persisted books, without assuming batch atomicity.
 - KNOWN-003: GenerateToken still returns 500 for a registered username containing `+&?%#`. The former fixme now executes, tracks that specific 500 as an expected failure and deletes its account through Basic auth. The server bug is not fixed by this repository.
-- KNOWN-004: missing/incorrect Content-Type produces an HTML 500 response; two characterization cases document it.
+- KNOWN-004: missing/incorrect Content-Type produces an HTML 500 TypeError; both cases expect a JSON client error (400 or 415), with the recognized HTML 500 marked as an expected failure. These statuses are the suite's target expectation, not an independently verified published contract.
 
-There are no unconditional fixme skips for these cases. If the APIs start returning the correct responses for KNOWN-001/003, their contract assertions run normally; review and remove the known-issue tag after confirming the fix. Changed characterization behavior fails its known-issue test and requires investigation rather than automatic acceptance.
+There are no unconditional fixme skips for these cases. If the APIs start returning correct responses, their assertions run normally; review and remove the known-issue tag after confirming the fix. Responses outside the recognized defect conditions must satisfy the assertions or fail unexpectedly.
 
 ## QA review workflow
 
 Run the workspace `/api-review` prompt to request an evidence-based, read-only review of a selected test or change. It asks for file references, separates confirmed defects from hypotheses, and respects this project's exclusions.
 
-During this implementation, an initial atomic-batch hypothesis was rejected by live checks: mixed ISBN batches return 201, echo both items and persist only the valid book in either order. The final characterization verifies the real persisted state and records the response inconsistency as KNOWN-002 rather than claiming atomicity. The helper-vs-service and user-fixture choices above document the architecture decisions. The prompt has been added for future use; no claim of a separately measured prompt-improvement experiment is made.
+During this implementation, an initial atomic-batch hypothesis was rejected by live checks: mixed ISBN batches return 201, echo both items and persist only the valid book in either order. The tests now require truthful success reporting against persisted state and track the inconsistency as KNOWN-002 rather than requiring atomicity. The helper-vs-service and user-fixture choices above document the architecture decisions. The prompt has been added for future use; no claim of a separately measured prompt-improvement experiment is made.

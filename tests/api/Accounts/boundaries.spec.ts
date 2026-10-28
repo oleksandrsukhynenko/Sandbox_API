@@ -1,3 +1,4 @@
+import type { APIResponse } from '@playwright/test';
 import { test, expect } from '../fixtures/api.fixture';
 import { createUserCredentials, userData, type UserCredentials } from '../data/users.data';
 import { cleanupUser, type User } from '../helpers/user.helper';
@@ -11,20 +12,18 @@ const cases = [
 ] as const;
 
 test.describe('Account required-field and password boundaries', { tag: '@regression' }, () => {
+  let response: APIResponse;
   let credentials: UserCredentials;
   let user: User | undefined;
 
   test.beforeEach(async () => {
-    //do we nneed steps if there is only one step?
-    await test.step('Generate unique default credentials and reset cleanup state', async () => {
-      credentials = createUserCredentials();
-      user = undefined;
-    });
+    credentials = createUserCredentials();
+    user = undefined;
   });
 
   test.afterEach(async ({ accounts }) => {
     if (user) {
-      await test.step('Clean up the boundary-test account', () => cleanupUser(accounts, user!));
+      await cleanupUser(accounts, user);
     }
   });
 
@@ -33,14 +32,12 @@ test.describe('Account required-field and password boundaries', { tag: '@regress
       await test.step(`Prepare the selected boundary: ${data.name}`, async () => {
         credentials[data.field] = data.value;
       });
-//create general response variable and reuse it in all tests
-      const response = await test.step('Submit credentials and track any created account for cleanup', async () => {
-        const response = await accounts.create(credentials);
+      await test.step('Submit credentials and track any created account for cleanup', async () => {
+        response = await accounts.create(credentials);
         if (response.status() === userData.httpStatus.created) {
           const registration = registrationSchema.parse(await response.json());
           user = { credentials, userID: registration.userID, registration, deleted: false };
         }
-        return response;
       });
 
       await test.step(`Verify the boundary response has HTTP status ${data.expectedStatus} and the expected body`, async () => {
