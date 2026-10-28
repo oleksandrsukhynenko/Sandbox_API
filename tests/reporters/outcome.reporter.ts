@@ -1,5 +1,12 @@
 import type { FullConfig, Reporter, Suite, TestCase } from '@playwright/test/reporter';
 
+/**
+ * Prints a final outcome summary for each Playwright project.
+ * Counts each test once across retries and separates passed checks, expected failures,
+ * skipped tests, flaky tests and unexpected failures. Expected failures marked with
+ * test.fail() are not counted as passed checks, so known bugs do not inflate success totals.
+ * Only changes console reporting; it does not affect test execution or results.
+ */
 export default class OutcomeReporter implements Reporter {
   private tests: TestCase[] = [];
 
