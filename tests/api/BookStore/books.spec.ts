@@ -35,6 +35,7 @@ test.describe('BookStore API', { tag: '@regression' }, () => {
   });
 
   test('creates, reads, replaces, deletes a collection book and verifies its absence', { tag: '@smoke' }, async ({ accounts, catalog: catalogService, collection, authenticatedUser: user }) => {
+    //create varaibles outside of the test
     let originalIsbn: string;
     let replacementIsbn: string;
 

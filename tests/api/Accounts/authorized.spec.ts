@@ -6,6 +6,7 @@ import { endpoints } from '../data/endpoints';
 test.describe(`POST ${endpoints.account.authorized}`, { tag: '@regression' }, () => {
   test('returns 200 with true after a token has been generated', async ({ accounts, user }) => {
     await test.step('Generate a token for the registered user', () => login(accounts, user));
+    //create general response variable and reuse it in all tests
     const response = await test.step('Check authorization after token generation', () => accounts.authorized(user.credentials));
     await test.step('Verify a successful JSON response with authorized=true', async () => {
       expect(response.status()).toBe(userData.httpStatus.ok);

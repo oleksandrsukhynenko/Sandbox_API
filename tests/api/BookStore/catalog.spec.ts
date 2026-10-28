@@ -1,11 +1,12 @@
 import { test, expect } from '../fixtures/api.fixture';
 import { buildCatalogLookupCases, catalogLookupCaseNames } from '../data/books.data';
 import { bookSchema, catalogSchema, errorSchema } from '../helpers/schemas';
-
+//remove comment
 /** Checks ISBN lookup boundaries, encoding and whitespace behavior using a real catalog book. */
 test.describe('Catalog ISBN lookup', { tag: '@regression' }, () => {
   for (const name of catalogLookupCaseNames) {
     test(`lookup: ${name}`, {
+      //different annotations if the tests
       annotation: {
         type: 'description',
         description: `Checks "${name}" against a real catalog ISBN, verifying the HTTP status and the book or error response contract.`,

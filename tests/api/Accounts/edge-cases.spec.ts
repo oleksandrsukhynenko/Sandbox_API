@@ -2,7 +2,8 @@ import { test as apiTest, expect } from '../fixtures/api.fixture';
 import { createUserCredentials, userData } from '../data/users.data';
 import { tokenSchema, userProfileSchema } from '../helpers/schemas';
 import { sendRawCredentials } from '../helpers/raw-http.helper';
-
+//describe how it works, what is the purpose of this test, what is the expected outcome
+//maybe use before
 const test = apiTest.extend({
   userCredentials: async ({}, use) => {
     const credentials = createUserCredentials();
@@ -13,6 +14,7 @@ const test = apiTest.extend({
 
 test.describe('Account API encoding and content types', { tag: '@regression' }, () => {
   test('preserves special characters in the username', {
+    //descfribe this type of tad and annotation
     tag: '@known-issue',
     annotation: { type: 'issue', description: 'KNOWN-003: GenerateToken returns 500 for a registered username containing +&?%#.' },
   }, async ({ accounts, user }) => {

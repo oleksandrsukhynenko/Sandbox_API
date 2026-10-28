@@ -34,6 +34,7 @@ test.describe(`DELETE ${endpoints.account.user}/{UUID}`, { tag: '@regression' },
 
     await test.step('Verify the user still exists after unauthorized deletion', async () => {
       const profile = await accounts.getById(user.userID, user.token);
+      //repetative code with 51 rows, we can create a helper function to verify the profile exists and has the expected userId
       expect(profile.status()).toBe(userData.httpStatus.ok);
       expect(await profile.json()).toMatchObject({ userId: user.userID });
     });
@@ -60,4 +61,6 @@ test.describe(`DELETE ${endpoints.account.user}/{UUID}`, { tag: '@regression' },
       expect(await response.json()).toMatchObject(userData.responses.userNotFound);
     });
   });
+
+  //helper function
 });

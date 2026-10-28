@@ -18,6 +18,7 @@ export default class OutcomeReporter implements Reporter {
         const outcome = test.outcome();
         if (outcome === 'skipped') {
           counts.skipped++;
+          //else if several times looks strange
         } else if (outcome === 'unexpected') {
           counts.failed++;
         } else if (outcome === 'flaky') {

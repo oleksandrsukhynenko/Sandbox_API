@@ -4,7 +4,7 @@ export interface CatalogLookupCase {
   expectedStatus: number;
   found: boolean;
 }
-
+//parrameters
 /** Builds exact-lookup cases around a real catalog ISBN rather than a hardcoded title. */
 export function buildCatalogLookupCases(isbn: string): CatalogLookupCase[] {
   return [

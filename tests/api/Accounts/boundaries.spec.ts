@@ -15,6 +15,7 @@ test.describe('Account required-field and password boundaries', { tag: '@regress
   let user: User | undefined;
 
   test.beforeEach(async () => {
+    //do we nneed steps if there is only one step?
     await test.step('Generate unique default credentials and reset cleanup state', async () => {
       credentials = createUserCredentials();
       user = undefined;
@@ -32,7 +33,7 @@ test.describe('Account required-field and password boundaries', { tag: '@regress
       await test.step(`Prepare the selected boundary: ${data.name}`, async () => {
         credentials[data.field] = data.value;
       });
-
+//create general response variable and reuse it in all tests
       const response = await test.step('Submit credentials and track any created account for cleanup', async () => {
         const response = await accounts.create(credentials);
         if (response.status() === userData.httpStatus.created) {
